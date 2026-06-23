@@ -1,53 +1,210 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>登录验证码获取</title>
+  <title>2FA TOTP 动态验证码获取 | CYBER SEC</title>
   <link rel="stylesheet" href="css/bulma-0.9.0.min.css">
+  <!-- 引入带有科技感的 Google 字体 -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <style>
     [v-cloak] {
       display: none;
     }
 
+    /* 赛博朋克 / 科技感暗黑背景与网格线 */
     html, body {
       height: 100%;
+      background-color: #050a15;
+      background-image: 
+        linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+      background-size: 30px 30px;
+      color: #a0c4ff;
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    /* 标题与标签发光效果 */
+    .title, .label {
+      color: #00f3ff !important;
+      font-family: 'Orbitron', sans-serif;
+      text-shadow: 0 0 8px rgba(0, 243, 255, 0.4);
+      letter-spacing: 1px;
+    }
+
+    .container {
+      max-width: 650px !important;
+      padding-top: 2rem;
+    }
+
+    /* 玻璃拟态风格的主控面板 */
+    .panel-box {
+      background: rgba(5, 10, 20, 0.6);
+      border: 1px solid rgba(0, 243, 255, 0.3);
+      box-shadow: 0 0 20px rgba(0, 243, 255, 0.1), inset 0 0 15px rgba(0, 243, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 2rem;
+    }
+
+    /* 输入框科技感改造 */
+    .input {
+      background: rgba(0, 243, 255, 0.05) !important;
+      border: 1px solid rgba(0, 243, 255, 0.2) !important;
+      color: #00f3ff !important;
+      font-family: 'Share Tech Mono', monospace;
+      border-radius: 6px;
+      transition: all 0.3s ease;
+    }
+
+    .input::placeholder {
+      color: rgba(0, 243, 255, 0.3) !important;
+    }
+
+    .input:focus {
+      border-color: #00f3ff !important;
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.3) !important;
+      background: rgba(0, 243, 255, 0.1) !important;
+    }
+
+    /* 霓虹进度条 */
+    .progress {
+      background-color: rgba(0, 243, 255, 0.1) !important;
+      border: 1px solid rgba(0, 243, 255, 0.2);
+      border-radius: 4px;
+      height: 8px;
+    }
+    
+    .progress::-webkit-progress-value {
+      background-color: #00f3ff;
+      box-shadow: 0 0 10px #00f3ff;
+    }
+    .progress::-moz-progress-bar {
+      background-color: #00f3ff;
+      box-shadow: 0 0 10px #00f3ff;
+    }
+
+    /* 验证码数字展示区 */
+    .token-display-box {
+      background: rgba(0,0,0,0.4); 
+      border: 1px dashed rgba(0, 243, 255, 0.3); 
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-top: 2rem; 
+      margin-bottom: 2rem;
+    }
+
+    #token {
+      font-size: 3.5rem;
+      font-weight: 700;
+      letter-spacing: 8px;
+      margin-bottom: 0;
+    }
+
+    /* 动态呼吸发光字 */
+    .neon-text {
+      color: #00f3ff;
+      text-shadow: 
+        0 0 5px #00f3ff,
+        0 0 10px #00f3ff,
+        0 0 20px #00f3ff;
+      animation: pulsate 1.5s infinite alternate;
+    }
+
+    @keyframes pulsate {
+      100% {
+        text-shadow: 
+          0 0 4px #00f3ff,
+          0 0 11px #00f3ff,
+          0 0 19px #00f3ff,
+          0 0 40px rgba(0, 243, 255, 0.8);
+      }
+      0% {
+        text-shadow: 
+          0 0 2px #00f3ff,
+          0 0 4px #00f3ff,
+          0 0 6px #00f3ff,
+          0 0 10px rgba(0, 243, 255, 0.5);
+      }
+    }
+
+    /* 复制按钮特效 */
+    #clipboard-button {
+      background: rgba(0, 243, 255, 0.05);
+      border: 1px solid rgba(0, 243, 255, 0.4);
+      border-radius: 50%;
+      width: 80px;
+      height: 80px;
+      transition: all 0.3s ease-in-out;
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto;
+      cursor: pointer;
+    }
+
+    #clipboard-button:hover {
+      transform: scale(1.1);
+      background: rgba(0, 243, 255, 0.2);
+      box-shadow: 0 0 25px rgba(0, 243, 255, 0.5);
+      border-color: #00f3ff;
+    }
+
+    /* 将黑色 SVG 图标滤镜转换为青色 */
+    .copy-icon {
+      width: 35px;
+      height: 35px;
+      filter: invert(72%) sepia(95%) saturate(3000%) hue-rotate(130deg) brightness(100%) contrast(105%);
+    }
+
+    /* 系统通知面板 */
+    .notification.is-info {
+      background: rgba(0, 243, 255, 0.05);
+      border: 1px solid rgba(0, 243, 255, 0.2);
+      color: #8ab4f8;
+      font-size: 0.9rem;
+      border-radius: 8px;
+    }
+
+    .notification strong {
+      color: #00f3ff;
+    }
+
+    .highlight-text {
+      color: #ff0055;
+      text-shadow: 0 0 5px rgba(255, 0, 85, 0.5);
     }
 
     body > footer {
       position: sticky;
       top: 100vh;
+      background: transparent;
     }
 
     .footer {
       padding: 2rem;
+      background: transparent !important;
     }
-    #clipboard-button {
-        transition: all 0.3s ease-in-out;
+
+    .footer a {
+      color: #00f3ff;
+      text-decoration: none;
+      transition: text-shadow 0.3s;
     }
-    #clipboard-button:hover {
-        transform: scale(1.2);
+    
+    .footer a:hover {
+      text-shadow: 0 0 8px #00f3ff;
     }
+
     .spacer {
-        height: 14px;
-    }
-    .checkget {
-        font-size: 1em;
-        font-weight: bold;
-        color: #000;
-        background-image: linear-gradient(90deg, #f0f0f0, #00f, #f0f0f0);
-        background-repeat: no-repeat;
-        background-size: 150% 100%;
-        animation: slide 3s linear infinite;
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        height: 20px;
     }
 
-
-    @media screen and (min-width: 1068px) {
-      .container {
-        max-width: 600px;
-        width: 600px;
+    @media screen and (max-width: 768px) {
+      #token {
+        font-size: 2.5rem;
+        letter-spacing: 4px;
       }
     }
   </style>
@@ -63,82 +220,72 @@
   <section id="app" class="section" v-cloak>
 
     <div class="container">
-
-      <div class="has-text-centered">
-          <h1 class="title">登录验证码获取</h1>
-      </div>
-      <div class="spacer"></div>
-      <div class="field">
-        <label class="label is-uppercase">你的秘钥：</label>
-        <div class="control">
-          <input class="input" type="text" v-model="secret_key" placeholder="The secret key (in base-32 format)">
+      <div class="panel-box">
+        <div class="has-text-centered">
+            <h1 class="title">TOTP AUTHENTICATOR</h1>
         </div>
-      </div>
-
-      <div class="field">
-        <label class="label is-uppercase">验证码位数默认6位 </label>
-        <div class="control">
-          <input class="input" type="text" v-model="digits" placeholder="Usually 6">
+        <div class="spacer"></div>
+        
+        <div class="field">
+          <label class="label">SECRET KEY // 秘钥</label>
+          <div class="control">
+            <input class="input" type="text" v-model="secret_key" placeholder="Enter base-32 format key">
+          </div>
         </div>
-      </div>
 
-      <div class="field">
-        <label class="label is-uppercase">令牌周期（以秒为单位）</label>
-        <div class="control">
-          <input class="input" type="text" v-model="period" placeholder="Usually 30">
+        <div class="columns is-mobile">
+          <div class="column">
+            <div class="field">
+              <label class="label">DIGITS // 位数</label>
+              <div class="control">
+                <input class="input" type="text" v-model="digits" placeholder="Usually 6">
+              </div>
+            </div>
+          </div>
+          <div class="column">
+            <div class="field">
+              <label class="label">PERIOD // 周期</label>
+              <div class="control">
+                <input class="input" type="text" v-model="period" placeholder="Usually 30">
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div class="content">
-        <span class="has-text-grey is-size-7">{{ updatingIn }} 秒内更新</span>
-        <progress class="progress is-info is-small" v-bind:value="updatingIn" :max="period"></progress>
-      </div>
+        <div class="content" style="margin-top: 1.5rem;">
+          <span class="has-text-grey is-size-7" style="color: #a0c4ff !important; font-weight: bold;">[ REFRESH IN {{ updatingIn }}S ]</span>
+          <progress class="progress" v-bind:value="updatingIn" :max="period"></progress>
+        </div>
 
-      <div class="box">
-        <p class="title is-size-1 has-text-centered" id="token">
-            <span class="color-gradient">{{ token }}</span>
-        </p>
-      </div>
+        <div class="token-display-box">
+          <p class="title has-text-centered" id="token">
+              <span class="neon-text">{{ token }}</span>
+          </p>
+        </div>
 
-      <div class="control is-clearfix" style="text-align: center;">
-        <a class="button is-large is-light" id="clipboard-button" data-clipboard-target="#token" title="点击按钮可复制验证码">
-          <img src="img/copy.svg" height="65" width="65">
-        </a>
-      </div>
-      <div class="spacer"></div>
-      <div class="notification is-info">
-          <p><strong>使用说明：</strong></p>
-          <p>1. 在<strong><span style="color:rgb(255,255,0);">“秘钥”</span></strong>输入框中输入你的秘钥，该秘钥是在订单卡密中最后一行字符串。</p>
-          <p>2. 输入验证码位数和令牌周期。通常，验证码位数默认为 6 位，令牌周期默认为 30 秒，但是你也可以根据自己的需要进行修改。</p>
-          <p>3. 获取验证码：在输入完以上信息后，页面会自动更新验证码并将其显示在页面上。你可以复制验证码用于登录。</p>
-          <p>4. 复制验证码：点击<strong><span style="color:rgb(255,255,0);">“红色复制”</span></strong>按钮，即可将验证码复制到剪贴板上，粘贴到验证码输入框进行账号验证登录。</p>
-      </div> 
-           
+        <div class="control is-clearfix" style="text-align: center;">
+          <a id="clipboard-button" data-clipboard-target="#token" title="点击复制验证码">
+            <img src="img/copy.svg" class="copy-icon">
+          </a>
+        </div>
+        
+        <div class="spacer"></div>
+        
+        <div class="notification is-info">
+            <p><strong>[ SYSTEM INSTRUCTIONS ]</strong></p>
+            <p>1. 在 <strong class="highlight-text">SECRET KEY</strong> 输入框中输入你的 2FA 秘钥。</p>
+            <p>2. 等待系统计算，控制面板中央将实时投影动态验证码。</p>
+            <p>3. 点击上方 <strong class="highlight-text">圆形脉冲按钮</strong> 提取验证码，并传输至目标平台进行身份核验。</p>
+        </div> 
+      </div>     
     </div>
 
   </section>
-  <script>
-  let hue = 0;
-  const step = 0.1;
-
-  setInterval(() => {
-    const tokenEl = document.querySelector(".color-gradient");
-    const hueColor = `hsl(${hue}, 70%, 20%)`;
-    const rgbColor = `rgb(${parseInt(hueColor.slice(4).split(",")[0])}, ${parseInt(hueColor.slice(4).split(",")[1])}, ${parseInt(hueColor.slice(4).split(",")[2])})`;
-    const newColor = `linear-gradient(${hue}deg, rgba(${rgbColor.slice(4, -1)}, 0.8) 50%, #FFF 50%, rgba(${rgbColor.slice(4, -1)}, 0.8) 50%)`;
-    tokenEl.style.background = newColor;
-    tokenEl.style.webkitBackgroundClip = "text";
-    tokenEl.style.webkitTextFillColor = "transparent";
-
-    hue += step;
-    hue = hue % 360;
-  }, 2); // change gradient every 50 milliseconds
-</script>
 
   <footer class="footer">
     <div class="container">
-      <div class="content has-text-centered">
-        Built by <a href="https://sijuly.nyc.mn">小龙女她爸</a>
+      <div class="content has-text-centered" style="color: rgba(255,255,255,0.3); font-size: 0.8rem; letter-spacing: 1px;">
+        SECURE SYSTEM OVERRIDE // Built by <a href="https://sijuly.nyc.mn" target="_blank">小龙女她爸</a>
       </div>
     </div>
   </footer>
