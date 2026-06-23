@@ -20,8 +20,7 @@
 1. 一台 Linux 服务器（VPS）。
 2. 拥有 **root** 权限。
 3. 一个已经**解析到该服务器 IP 的域名**（例如 `2fa.yourdomain.com`）。
-4. 服务器上**已经安装并运行了本机版 Caddy**（脚本会自动配置 `/etc/caddy/Caddyfile`）。
-   > *注：如果你没有安装 Caddy，可以先前往 [Caddy 官网](https://caddyserver.com/docs/install) 查看安装方法，非常简单。*
+   > *注：如果服务器没有安装 Caddy，安装脚本会自动为你检测并安装最新版的 Caddy。*
 
 ### 安装命令
 
@@ -35,9 +34,10 @@ bash <(curl -s https://raw.githubusercontent.com/SIJULY/2FA-TOTP/main/install.sh
 1. 自动检查并安装依赖环境（`git`、`docker`、`docker-compose`）。
 2. 交互式提示你输入已解析的域名。
 3. 拉取本仓库最新代码到 `/opt/2fa-totp` 目录。
-4. 使用 Docker 启动 Web 服务容器，并映射到本机的 `8011` 端口以防止端口冲突。
-5. 自动将该域名的反代规则追加到宿主机的 `/etc/caddy/Caddyfile` 中。
-6. 热重载 Caddy，Caddy 会在后台自动为你申请 Let's Encrypt 的 HTTPS 证书。
+4. 如果本机未安装 Caddy，脚本将根据你的系统（Debian/Ubuntu/CentOS等）自动安装 Caddy。
+5. 使用 Docker 启动 Web 服务容器，并映射到本机的 `8011` 端口以防止端口冲突。
+6. 自动将该域名的反代规则追加到宿主机的 `/etc/caddy/Caddyfile` 中。
+7. 热重载/启动 Caddy，Caddy 会在后台自动为你申请 Let's Encrypt 的 HTTPS 证书。
 
 等待脚本执行完毕后，直接在浏览器中访问你绑定的域名（如 `https://2fa.yourdomain.com`）即可畅快使用！
 

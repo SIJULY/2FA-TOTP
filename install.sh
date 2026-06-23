@@ -27,6 +27,50 @@ else
     DOCKER_COMPOSE_CMD="docker-compose"
 fi
 
+# 自动检测并安装 Caddy
+if ! command -v caddy >/dev/null 2>&1; then
+    echo "未检测到本机安装 Caddy，正在尝试自动安装 Caddy..."
+    if [ -f /etc/debian_version ]; then
+        apt-get update
+        apt-get install -y debian-keyring debian-archive-keyring apt-transport-https curl
+        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
+        apt-get update
+        apt-get install caddy -y
+    elif [ -f /etc/redhat-release ]; then
+        yum install yum-plugin-copr -y
+        yum copr enable @caddy/caddy -y
+        yum install caddy -y
+    else
+        echo -e "\033[31m警告: 无法确定系统类型，跳过 Caddy 自动安装。如果后续失败，请手动安装 Caddy。\033[0m"
+    fi
+    
+    if command -v caddy >/dev/null 2>&1; then
+        systemctl enable caddy
+        systemctl start caddy
+        echo "Caddy 安装并启动完成！"
+    fi
+fi
+
+# 尝试放行防火墙端口 (80 和 443)
+echo "正在检查并配置防火墙..."
+if command -v ufw >/dev/null 2>&1; then
+    ufw allow 80/tcp >/dev/null 2>&1
+    ufw allow 443/tcp >/dev/null 2>&1
+    echo "已尝试通过 ufw 放行 80 和 443 端口。"
+elif command -v firewall-cmd >/dev/null 2>&1; then
+    firewall-cmd --zone=public --add-port=80/tcp --permanent >/dev/null 2>&1
+    firewall-cmd --zone=public --add-port=443/tcp --permanent >/dev/null 2>&1
+    firewall-cmd --reload >/dev/null 2>&1
+    echo "已尝试通过 firewalld 放行 80 和 443 端口。"
+elif command -v iptables >/dev/null 2>&1; then
+    iptables -I INPUT -p tcp --dport 80 -j ACCEPT >/dev/null 2>&1
+    iptables -I INPUT -p tcp --dport 443 -j ACCEPT >/dev/null 2>&1
+    command -v netfilter-persistent >/dev/null 2>&1 && netfilter-persistent save >/dev/null 2>&1
+    command -v service >/dev/null 2>&1 && service iptables save >/dev/null 2>&1
+    echo "已尝试通过 iptables 放行 80 和 443 端口。"
+fi
+
 # 提示用户输入域名
 read -p "请输入您已解析到本服务器的域名 (例如: 2fa.yourdomain.com): " DOMAIN_NAME
 
@@ -60,17 +104,22 @@ $DOCKER_COMPOSE_CMD up -d --build
 echo "正在配置宿主机的 Caddy..."
 CADDYFILE_PATH="/etc/caddy/Caddyfile"
 
+if [ ! -d "/etc/caddy" ]; then
+    mkdir -p /etc/caddy
+fi
+
 if [ ! -f "$CADDYFILE_PATH" ]; then
-    echo -e "\033[31m错误: 找不到宿主机的 Caddy 配置文件 $CADDYFILE_PATH。请确保您已经安装了 Caddy。\033[0m"
-    exit 1
+    touch "$CADDYFILE_PATH"
 fi
 
 # 检查 Caddyfile 中是否已经包含了该域名，避免重复添加
 if grep -q "$DOMAIN_NAME" "$CADDYFILE_PATH"; then
     echo "域名 $DOMAIN_NAME 已存在于 $CADDYFILE_PATH 中，跳过添加。"
 else
-    # 备份原有的 Caddyfile
-    cp "$CADDYFILE_PATH" "${CADDYFILE_PATH}.bak.$(date +%F_%T)"
+    # 备份原有的 Caddyfile (如果存在且不为空)
+    if [ -s "$CADDYFILE_PATH" ]; then
+        cp "$CADDYFILE_PATH" "${CADDYFILE_PATH}.bak.$(date +%F_%T)"
+    fi
     
     # 将新域名的配置追加到 Caddyfile 末尾
     cat >> "$CADDYFILE_PATH" <<EOF
@@ -83,8 +132,12 @@ EOF
 fi
 
 # 重载 Caddy 配置
-echo "正在重载 Caddy 配置..."
-systemctl reload caddy
+echo "正在重载/启动 Caddy 配置..."
+if systemctl is-active --quiet caddy; then
+    systemctl reload caddy
+else
+    systemctl start caddy
+fi
 
 echo ""
 echo "=========================================="
