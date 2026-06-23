@@ -2,283 +2,269 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>2FA TOTP 动态验证码获取</title>
-  <link rel="stylesheet" href="css/bulma-0.9.0.min.css">
-  <!-- 引入现代化无衬线字体和等宽字体 -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Authenticator</title>
+  <!-- 苹果 iOS 风格，去掉臃肿库，原生 CSS 极简排版 -->
   <style>
     [v-cloak] {
       display: none;
     }
 
-    /* 现代感动态渐变背景 */
-    html, body {
-      height: 100%;
-      font-family: 'Inter', sans-serif;
-      background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-      background-size: 400% 400%;
-      animation: gradientBG 15s ease infinite;
-      color: #333;
+    /* iOS 极简扁平化风格 */
+    :root {
+      --bg-color: #F2F2F7; /* iOS 默认浅灰背景 */
+      --card-bg: #FFFFFF;
+      --text-main: #000000;
+      --text-muted: #8E8E93;
+      --accent: #007AFF; /* iOS 经典蓝 */
+      --border: #E5E5EA;
+      --safe-area: env(safe-area-inset-bottom, 20px);
     }
 
-    @keyframes gradientBG {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
+    * {
+      box-sizing: border-box;
+      /* 禁用移动端长按选中文本和弹出菜单，解决复制时的烦人菜单问题 */
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
     }
 
     .container {
-      max-width: 600px !important;
-      padding-top: 4vh;
-      padding-bottom: 4vh;
+      width: 100%;
+      max-width: 500px;
+      padding: 20px;
     }
 
-    /* 清爽的白色玻璃拟态卡片 */
-    .panel-box {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      border-radius: 24px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-      padding: 3rem 2.5rem;
-    }
-
-    .title {
-      font-weight: 800;
-      color: #1a1a1a;
-      letter-spacing: -0.5px;
-      margin-bottom: 2rem !important;
-    }
-
-    .label {
-      color: #4a4a4a;
-      font-weight: 600;
-      font-size: 0.9rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    /* 现代化大号输入框 */
-    .input {
-      border: 2px solid #e0e0e0;
-      border-radius: 12px;
-      padding: 1.2rem;
-      font-size: 1rem;
-      box-shadow: none !important;
-      transition: all 0.3s;
-      background: #f8f9fa;
-      color: #333;
-      font-family: 'JetBrains Mono', monospace; /* 秘钥使用等宽字体防看错 */
-    }
-
-    .input:focus {
-      border-color: #23a6d5;
-      background: #fff;
-    }
-
-    /* 倒计时展示 */
-    .timer-text {
-      font-size: 1.2rem;
-      font-weight: 800;
-      color: #e73c7e;
-      text-align: center;
-      margin-bottom: 0.5rem;
-    }
-
-    /* 加粗加大的进度条 */
-    .progress {
-      height: 14px;
-      border-radius: 7px;
-      background-color: #e2e8f0;
-      overflow: hidden;
-      margin-bottom: 0 !important;
-    }
-
-    .progress::-webkit-progress-value {
-      background: linear-gradient(90deg, #23a6d5, #23d5ab);
-      transition: width 0.2s ease;
-    }
-    .progress::-moz-progress-bar {
-      background: linear-gradient(90deg, #23a6d5, #23d5ab);
-    }
-
-    /* 验证码展示大框 */
-    .token-display-box {
-      margin: 2rem 0;
-      padding: 2.5rem 0 2rem 0;
-      background: #f8f9fa;
-      border-radius: 20px;
-      border: 2px dashed #cbd5e1;
-      text-align: center;
-    }
-
-    /* 超大高对比度验证码 */
-    #token {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 4.5rem;
+    /* iOS 风格的标题 */
+    .header-title {
+      font-size: 34px;
       font-weight: 700;
-      letter-spacing: 12px;
-      color: #0f172a;
-      margin-bottom: 0;
-      margin-right: -12px; /* 补偿最后一个字符的间距使其完全居中 */
+      margin-top: 40px;
+      margin-bottom: 20px;
+      letter-spacing: -0.5px;
     }
 
-    /* 现代风复制按钮 */
-    #clipboard-button {
-      display: inline-flex;
+    /* iOS 风格输入框组合（Card 样式） */
+    .form-group {
+      background: var(--card-bg);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .form-row {
+      display: flex;
       align-items: center;
-      justify-content: center;
-      background: #23a6d5;
-      color: white;
-      border: none;
-      border-radius: 50px;
-      padding: 1rem 3rem;
-      font-size: 1.2rem;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 10px 20px rgba(35, 166, 213, 0.3);
-      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-      text-decoration: none;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
     }
 
-    #clipboard-button:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 15px 25px rgba(35, 166, 213, 0.4);
-      background: #1e92bd;
+    .form-row:last-child {
+      border-bottom: none;
+    }
+
+    .form-label {
+      width: 80px;
+      font-size: 17px;
+      font-weight: 400;
+    }
+
+    .form-input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-size: 17px;
+      color: var(--text-main);
+      outline: none;
+      /* 允许输入框内的文本可以被编辑和光标选中 */
+      -webkit-user-select: text;
+      user-select: text;
     }
     
-    #clipboard-button:active {
-      transform: translateY(1px);
+    .form-input::placeholder {
+      color: #C7C7CC;
     }
 
-    /* 将黑色 SVG 图标转为纯白色 */
-    .copy-icon {
-      width: 24px;
-      height: 24px;
-      margin-right: 10px;
-      filter: brightness(0) invert(1);
+    .form-input.mono {
+      font-family: "SF Mono", ui-monospace, Menlo, monospace;
+      letter-spacing: 1px;
     }
 
-    /* 柔和的提示框 */
-    .notification.is-light {
-      background-color: #f1f5f9;
+    /* 验证码展示区域 */
+    .token-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 30px 20px;
+      text-align: center;
+      margin-bottom: 24px;
+      /* 重要：移除整个容器的选中权限 */
+      -webkit-user-select: none;
+      user-select: none;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+    }
+
+    #token {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+      font-size: 56px;
+      font-weight: 300;
+      letter-spacing: 14px;
+      margin: 0;
+      margin-right: -14px; /* 居中补偿 */
+      color: var(--text-main);
+      /* 坚决禁止选中验证码文本 */
+      -webkit-user-select: none;
+      user-select: none;
+      pointer-events: none; /* 让鼠标/手指穿透，直接点击到底层或父层，防止触发文本选择 */
+    }
+
+    /* 环形/线形 倒计时指示器 */
+    .timer-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 15px;
+      font-size: 15px;
+      color: var(--text-muted);
+    }
+    
+    .pie-timer {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: conic-gradient(var(--accent) var(--deg), #E5E5EA 0deg);
+      margin-right: 8px;
+    }
+
+    /* 极简复制按钮 */
+    .copy-btn {
+      width: 100%;
+      background: var(--accent);
+      color: white;
+      border: none;
       border-radius: 12px;
-      color: #475569;
-      padding: 1.5rem;
-      border-left: 4px solid #23a6d5;
-      font-size: 0.95rem;
-    }
-
-    .notification p {
-      margin-bottom: 0.5em;
-    }
-
-    .footer {
-      background: transparent;
-      padding: 2rem 1.5rem;
-    }
-
-    .footer .content {
-      color: rgba(255,255,255,0.9);
+      padding: 16px;
+      font-size: 17px;
       font-weight: 600;
-      letter-spacing: 0.5px;
-    }
-    .footer a {
-      color: #fff;
-      text-decoration: underline;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    /* 移动端适配 */
-    @media screen and (max-width: 768px) {
-      .panel-box {
-        padding: 2rem 1.5rem;
-      }
-      #token {
-        font-size: 3.5rem;
-        letter-spacing: 6px;
-        margin-right: -6px;
-      }
-      #clipboard-button {
-        width: 100%;
-      }
+    .copy-btn:active {
+      opacity: 0.7;
+    }
+
+    /* iOS 风格的 Toast 提示框 (类似于 Airpods 连接提示) */
+    .toast-container {
+      position: fixed;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%) scale(0.9);
+      background: rgba(40, 40, 40, 0.9);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-size: 15px;
+      font-weight: 500;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+
+    .toast-container.show {
+      opacity: 1;
+      transform: translateX(-50%) scale(1);
+    }
+
+    .toast-icon {
+      margin-right: 8px;
+      font-size: 18px;
+    }
+
+    /* 底部标注 */
+    .footer {
+      margin-top: auto;
+      padding-bottom: var(--safe-area);
+      padding-top: 40px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-muted);
     }
   </style>
 </head>
 
 <body>
 
-  <script defer src="js/vue-2.4.0.min.js"></script>
-  <script defer src="js/otpauth-3.1.3.min.js"></script>
-  <script defer src="js/clipboard-2.0.6.min.js"></script>
-  <script defer src="js/app.js?v=1.0"></script>
+  <script src="js/vue-2.4.0.min.js"></script>
+  <script src="js/otpauth-3.1.3.min.js"></script>
+  <script src="js/clipboard-2.0.6.min.js"></script>
 
-  <section id="app" class="section" v-cloak>
+  <div id="app" class="container" v-cloak>
+    
+    <div class="header-title">Authenticator</div>
 
-    <div class="container">
-      <div class="panel-box">
-        <div class="has-text-centered">
-            <h1 class="title">TOTP 动态验证码</h1>
-        </div>
-        
-        <div class="field">
-          <label class="label">2FA 秘钥 (Secret Key)</label>
-          <div class="control">
-            <input class="input" type="text" v-model="secret_key" placeholder="在此处粘贴你的 Base32 格式秘钥">
-          </div>
-        </div>
-
-        <div class="columns is-mobile">
-          <div class="column">
-            <div class="field">
-              <label class="label">位数</label>
-              <div class="control">
-                <input class="input" type="text" v-model="digits" placeholder="默认 6">
-              </div>
-            </div>
-          </div>
-          <div class="column">
-            <div class="field">
-              <label class="label">刷新周期(秒)</label>
-              <div class="control">
-                <input class="input" type="text" v-model="period" placeholder="默认 30">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="token-display-box">
-          <p id="token">{{ token }}</p>
-          
-          <div style="padding: 0 2rem; margin-top: 1.5rem;">
-            <div class="timer-text">距离刷新还剩 {{ updatingIn }} 秒</div>
-            <progress class="progress" v-bind:value="updatingIn" :max="period"></progress>
-          </div>
-        </div>
-
-        <div class="has-text-centered">
-          <a id="clipboard-button" data-clipboard-target="#token">
-            <img src="img/copy.svg" class="copy-icon"> 复制验证码
-          </a>
-        </div>
-        
-        <div class="notification is-light" style="margin-top: 2.5rem;">
-            <p><strong>使用指引：</strong></p>
-            <p>1. 在最上方的输入框内填入或粘贴你的 2FA 秘钥。</p>
-            <p>2. 中间大字显示的数字即为实时验证码，请关注下方的刷新倒计时进度条。</p>
-            <p>3. 点击蓝色的 <strong>"复制验证码"</strong> 按钮，即可直接粘贴到目标网站使用。</p>
-        </div> 
-      </div>     
-    </div>
-
-  </section>
-
-  <footer class="footer">
-    <div class="container">
-      <div class="content has-text-centered">
-        Built with ❤️ by <a href="https://sijuly.nyc.mn" target="_blank">小龙女她爸</a>
+    <div class="form-group">
+      <div class="form-row">
+        <div class="form-label">Key</div>
+        <input class="form-input mono" type="text" v-model="secret_key" placeholder="Base32 Secret">
       </div>
     </div>
-  </footer>
 
+    <div class="form-group" style="display: flex;">
+      <div class="form-row" style="flex: 1; border-bottom: none; border-right: 1px solid var(--border);">
+        <div class="form-label" style="width: 50px;">Bits</div>
+        <input class="form-input" type="tel" v-model="digits">
+      </div>
+      <div class="form-row" style="flex: 1; border-bottom: none;">
+        <div class="form-label" style="width: 50px;">Sec</div>
+        <input class="form-input" type="tel" v-model="period">
+      </div>
+    </div>
+
+    <!-- 验证码展示卡片 -->
+    <div class="token-card">
+      <p id="token">{{ token }}</p>
+      
+      <div class="timer-container">
+        <!-- 动态饼状图指示器 (iOS 风格) -->
+        <div class="pie-timer" :style="{ '--deg': (updatingIn / period * 360) + 'deg' }"></div>
+        {{ updatingIn }}s
+      </div>
+    </div>
+
+    <!-- 复制按钮 -->
+    <button id="clipboard-button" class="copy-btn" data-clipboard-text="" :data-clipboard-text="token">
+      Copy Code
+    </button>
+
+    <!-- 极简 Toast 提示 -->
+    <div class="toast-container" :class="{ show: showToast }">
+      <span class="toast-icon">✓</span> Copied to clipboard
+    </div>
+
+  </div>
+
+  <div class="footer">
+    iOS Style Design
+  </div>
+
+  <script src="js/app.js?v=2.0"></script>
 </body>
 </html>

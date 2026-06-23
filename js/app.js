@@ -35,6 +35,7 @@ new Vue({
     updatingIn: 30,
     token: null,
     clipboardButton: null,
+    showToast: false
   },
 
   mounted: function () {
@@ -45,6 +46,17 @@ new Vue({
     this.intervalHandle = setInterval(this.update, 1000);
 
     this.clipboardButton = new ClipboardJS('#clipboard-button');
+    
+    // 监听复制成功事件，显示原生的 Toast 提示，并防止选中文字
+    const self = this;
+    this.clipboardButton.on('success', function(e) {
+      e.clearSelection(); // 清除选中状态，避免出现选中文本背景色和菜单
+      
+      self.showToast = true;
+      setTimeout(function() {
+        self.showToast = false;
+      }, 2000); // 2秒后消失
+    });
   },
 
   destroyed: function () {
@@ -53,12 +65,17 @@ new Vue({
 
   computed: {
     totp: function () {
-      return new OTPAuth.TOTP({
-        algorithm: 'SHA1',
-        digits: this.digits,
-        period: this.period,
-        secret: OTPAuth.Secret.fromB32(stripSpaces(this.secret_key)),
-      });
+      try {
+        return new OTPAuth.TOTP({
+          algorithm: 'SHA1',
+          digits: this.digits,
+          period: this.period,
+          secret: OTPAuth.Secret.fromB32(stripSpaces(this.secret_key)),
+        });
+      } catch (e) {
+        // 如果秘钥无效，返回一个假的 TOTP 对象避免报错
+        return { generate: () => "------" };
+      }
     }
   },
 
@@ -76,6 +93,8 @@ new Vue({
       }
     },
     getQueryParameters: function () {
+      if (!window.location.search) return;
+      
       const queryParams = parseURLSearch(window.location.search);
 
       if (queryParams.key) {
