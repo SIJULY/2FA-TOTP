@@ -3,208 +3,203 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>2FA TOTP 动态验证码获取 | CYBER SEC</title>
+  <title>2FA TOTP 动态验证码获取</title>
   <link rel="stylesheet" href="css/bulma-0.9.0.min.css">
-  <!-- 引入带有科技感的 Google 字体 -->
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <!-- 引入现代化无衬线字体和等宽字体 -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
   <style>
     [v-cloak] {
       display: none;
     }
 
-    /* 赛博朋克 / 科技感暗黑背景与网格线 */
+    /* 现代感动态渐变背景 */
     html, body {
       height: 100%;
-      background-color: #050a15;
-      background-image: 
-        linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
-      background-size: 30px 30px;
-      color: #a0c4ff;
-      font-family: 'Share Tech Mono', monospace;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+      color: #333;
     }
 
-    /* 标题与标签发光效果 */
-    .title, .label {
-      color: #00f3ff !important;
-      font-family: 'Orbitron', sans-serif;
-      text-shadow: 0 0 8px rgba(0, 243, 255, 0.4);
-      letter-spacing: 1px;
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
     }
 
     .container {
-      max-width: 650px !important;
-      padding-top: 2rem;
+      max-width: 600px !important;
+      padding-top: 4vh;
+      padding-bottom: 4vh;
     }
 
-    /* 玻璃拟态风格的主控面板 */
+    /* 清爽的白色玻璃拟态卡片 */
     .panel-box {
-      background: rgba(5, 10, 20, 0.6);
-      border: 1px solid rgba(0, 243, 255, 0.3);
-      box-shadow: 0 0 20px rgba(0, 243, 255, 0.1), inset 0 0 15px rgba(0, 243, 255, 0.05);
+      background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(10px);
-      border-radius: 12px;
-      padding: 2rem;
+      border-radius: 24px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      padding: 3rem 2.5rem;
     }
 
-    /* 输入框科技感改造 */
+    .title {
+      font-weight: 800;
+      color: #1a1a1a;
+      letter-spacing: -0.5px;
+      margin-bottom: 2rem !important;
+    }
+
+    .label {
+      color: #4a4a4a;
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* 现代化大号输入框 */
     .input {
-      background: rgba(0, 243, 255, 0.05) !important;
-      border: 1px solid rgba(0, 243, 255, 0.2) !important;
-      color: #00f3ff !important;
-      font-family: 'Share Tech Mono', monospace;
-      border-radius: 6px;
-      transition: all 0.3s ease;
-    }
-
-    .input::placeholder {
-      color: rgba(0, 243, 255, 0.3) !important;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 1.2rem;
+      font-size: 1rem;
+      box-shadow: none !important;
+      transition: all 0.3s;
+      background: #f8f9fa;
+      color: #333;
+      font-family: 'JetBrains Mono', monospace; /* 秘钥使用等宽字体防看错 */
     }
 
     .input:focus {
-      border-color: #00f3ff !important;
-      box-shadow: 0 0 10px rgba(0, 243, 255, 0.3) !important;
-      background: rgba(0, 243, 255, 0.1) !important;
+      border-color: #23a6d5;
+      background: #fff;
     }
 
-    /* 霓虹进度条 */
-    .progress {
-      background-color: rgba(0, 243, 255, 0.1) !important;
-      border: 1px solid rgba(0, 243, 255, 0.2);
-      border-radius: 4px;
-      height: 8px;
+    /* 倒计时展示 */
+    .timer-text {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #e73c7e;
+      text-align: center;
+      margin-bottom: 0.5rem;
     }
-    
+
+    /* 加粗加大的进度条 */
+    .progress {
+      height: 14px;
+      border-radius: 7px;
+      background-color: #e2e8f0;
+      overflow: hidden;
+      margin-bottom: 0 !important;
+    }
+
     .progress::-webkit-progress-value {
-      background-color: #00f3ff;
-      box-shadow: 0 0 10px #00f3ff;
+      background: linear-gradient(90deg, #23a6d5, #23d5ab);
+      transition: width 0.2s ease;
     }
     .progress::-moz-progress-bar {
-      background-color: #00f3ff;
-      box-shadow: 0 0 10px #00f3ff;
+      background: linear-gradient(90deg, #23a6d5, #23d5ab);
     }
 
-    /* 验证码数字展示区 */
+    /* 验证码展示大框 */
     .token-display-box {
-      background: rgba(0,0,0,0.4); 
-      border: 1px dashed rgba(0, 243, 255, 0.3); 
-      border-radius: 8px;
-      padding: 1.5rem;
-      margin-top: 2rem; 
-      margin-bottom: 2rem;
+      margin: 2rem 0;
+      padding: 2.5rem 0 2rem 0;
+      background: #f8f9fa;
+      border-radius: 20px;
+      border: 2px dashed #cbd5e1;
+      text-align: center;
     }
 
+    /* 超大高对比度验证码 */
     #token {
-      font-size: 3.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 4.5rem;
       font-weight: 700;
-      letter-spacing: 8px;
+      letter-spacing: 12px;
+      color: #0f172a;
       margin-bottom: 0;
+      margin-right: -12px; /* 补偿最后一个字符的间距使其完全居中 */
     }
 
-    /* 动态呼吸发光字 */
-    .neon-text {
-      color: #00f3ff;
-      text-shadow: 
-        0 0 5px #00f3ff,
-        0 0 10px #00f3ff,
-        0 0 20px #00f3ff;
-      animation: pulsate 1.5s infinite alternate;
-    }
-
-    @keyframes pulsate {
-      100% {
-        text-shadow: 
-          0 0 4px #00f3ff,
-          0 0 11px #00f3ff,
-          0 0 19px #00f3ff,
-          0 0 40px rgba(0, 243, 255, 0.8);
-      }
-      0% {
-        text-shadow: 
-          0 0 2px #00f3ff,
-          0 0 4px #00f3ff,
-          0 0 6px #00f3ff,
-          0 0 10px rgba(0, 243, 255, 0.5);
-      }
-    }
-
-    /* 复制按钮特效 */
+    /* 现代风复制按钮 */
     #clipboard-button {
-      background: rgba(0, 243, 255, 0.05);
-      border: 1px solid rgba(0, 243, 255, 0.4);
-      border-radius: 50%;
-      width: 80px;
-      height: 80px;
-      transition: all 0.3s ease-in-out;
-      box-shadow: 0 0 15px rgba(0, 243, 255, 0.1);
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      margin: 0 auto;
+      background: #23a6d5;
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 1rem 3rem;
+      font-size: 1.2rem;
+      font-weight: 600;
       cursor: pointer;
+      box-shadow: 0 10px 20px rgba(35, 166, 213, 0.3);
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      text-decoration: none;
     }
 
     #clipboard-button:hover {
-      transform: scale(1.1);
-      background: rgba(0, 243, 255, 0.2);
-      box-shadow: 0 0 25px rgba(0, 243, 255, 0.5);
-      border-color: #00f3ff;
+      transform: translateY(-3px);
+      box-shadow: 0 15px 25px rgba(35, 166, 213, 0.4);
+      background: #1e92bd;
+    }
+    
+    #clipboard-button:active {
+      transform: translateY(1px);
     }
 
-    /* 将黑色 SVG 图标滤镜转换为青色 */
+    /* 将黑色 SVG 图标转为纯白色 */
     .copy-icon {
-      width: 35px;
-      height: 35px;
-      filter: invert(72%) sepia(95%) saturate(3000%) hue-rotate(130deg) brightness(100%) contrast(105%);
+      width: 24px;
+      height: 24px;
+      margin-right: 10px;
+      filter: brightness(0) invert(1);
     }
 
-    /* 系统通知面板 */
-    .notification.is-info {
-      background: rgba(0, 243, 255, 0.05);
-      border: 1px solid rgba(0, 243, 255, 0.2);
-      color: #8ab4f8;
-      font-size: 0.9rem;
-      border-radius: 8px;
+    /* 柔和的提示框 */
+    .notification.is-light {
+      background-color: #f1f5f9;
+      border-radius: 12px;
+      color: #475569;
+      padding: 1.5rem;
+      border-left: 4px solid #23a6d5;
+      font-size: 0.95rem;
     }
 
-    .notification strong {
-      color: #00f3ff;
-    }
-
-    .highlight-text {
-      color: #ff0055;
-      text-shadow: 0 0 5px rgba(255, 0, 85, 0.5);
-    }
-
-    body > footer {
-      position: sticky;
-      top: 100vh;
-      background: transparent;
+    .notification p {
+      margin-bottom: 0.5em;
     }
 
     .footer {
-      padding: 2rem;
-      background: transparent !important;
+      background: transparent;
+      padding: 2rem 1.5rem;
     }
 
+    .footer .content {
+      color: rgba(255,255,255,0.9);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
     .footer a {
-      color: #00f3ff;
-      text-decoration: none;
-      transition: text-shadow 0.3s;
-    }
-    
-    .footer a:hover {
-      text-shadow: 0 0 8px #00f3ff;
+      color: #fff;
+      text-decoration: underline;
     }
 
-    .spacer {
-        height: 20px;
-    }
-
+    /* 移动端适配 */
     @media screen and (max-width: 768px) {
+      .panel-box {
+        padding: 2rem 1.5rem;
+      }
       #token {
-        font-size: 2.5rem;
-        letter-spacing: 4px;
+        font-size: 3.5rem;
+        letter-spacing: 6px;
+        margin-right: -6px;
+      }
+      #clipboard-button {
+        width: 100%;
       }
     }
   </style>
@@ -222,60 +217,55 @@
     <div class="container">
       <div class="panel-box">
         <div class="has-text-centered">
-            <h1 class="title">TOTP AUTHENTICATOR</h1>
+            <h1 class="title">TOTP 动态验证码</h1>
         </div>
-        <div class="spacer"></div>
         
         <div class="field">
-          <label class="label">SECRET KEY // 秘钥</label>
+          <label class="label">2FA 秘钥 (Secret Key)</label>
           <div class="control">
-            <input class="input" type="text" v-model="secret_key" placeholder="Enter base-32 format key">
+            <input class="input" type="text" v-model="secret_key" placeholder="在此处粘贴你的 Base32 格式秘钥">
           </div>
         </div>
 
         <div class="columns is-mobile">
           <div class="column">
             <div class="field">
-              <label class="label">DIGITS // 位数</label>
+              <label class="label">位数</label>
               <div class="control">
-                <input class="input" type="text" v-model="digits" placeholder="Usually 6">
+                <input class="input" type="text" v-model="digits" placeholder="默认 6">
               </div>
             </div>
           </div>
           <div class="column">
             <div class="field">
-              <label class="label">PERIOD // 周期</label>
+              <label class="label">刷新周期(秒)</label>
               <div class="control">
-                <input class="input" type="text" v-model="period" placeholder="Usually 30">
+                <input class="input" type="text" v-model="period" placeholder="默认 30">
               </div>
             </div>
           </div>
         </div>
 
-        <div class="content" style="margin-top: 1.5rem;">
-          <span class="has-text-grey is-size-7" style="color: #a0c4ff !important; font-weight: bold;">[ REFRESH IN {{ updatingIn }}S ]</span>
-          <progress class="progress" v-bind:value="updatingIn" :max="period"></progress>
-        </div>
-
         <div class="token-display-box">
-          <p class="title has-text-centered" id="token">
-              <span class="neon-text">{{ token }}</span>
-          </p>
+          <p id="token">{{ token }}</p>
+          
+          <div style="padding: 0 2rem; margin-top: 1.5rem;">
+            <div class="timer-text">距离刷新还剩 {{ updatingIn }} 秒</div>
+            <progress class="progress" v-bind:value="updatingIn" :max="period"></progress>
+          </div>
         </div>
 
-        <div class="control is-clearfix" style="text-align: center;">
-          <a id="clipboard-button" data-clipboard-target="#token" title="点击复制验证码">
-            <img src="img/copy.svg" class="copy-icon">
+        <div class="has-text-centered">
+          <a id="clipboard-button" data-clipboard-target="#token">
+            <img src="img/copy.svg" class="copy-icon"> 复制验证码
           </a>
         </div>
         
-        <div class="spacer"></div>
-        
-        <div class="notification is-info">
-            <p><strong>[ SYSTEM INSTRUCTIONS ]</strong></p>
-            <p>1. 在 <strong class="highlight-text">SECRET KEY</strong> 输入框中输入你的 2FA 秘钥。</p>
-            <p>2. 等待系统计算，控制面板中央将实时投影动态验证码。</p>
-            <p>3. 点击上方 <strong class="highlight-text">圆形脉冲按钮</strong> 提取验证码，并传输至目标平台进行身份核验。</p>
+        <div class="notification is-light" style="margin-top: 2.5rem;">
+            <p><strong>使用指引：</strong></p>
+            <p>1. 在最上方的输入框内填入或粘贴你的 2FA 秘钥。</p>
+            <p>2. 中间大字显示的数字即为实时验证码，请关注下方的刷新倒计时进度条。</p>
+            <p>3. 点击蓝色的 <strong>"复制验证码"</strong> 按钮，即可直接粘贴到目标网站使用。</p>
         </div> 
       </div>     
     </div>
@@ -284,8 +274,8 @@
 
   <footer class="footer">
     <div class="container">
-      <div class="content has-text-centered" style="color: rgba(255,255,255,0.3); font-size: 0.8rem; letter-spacing: 1px;">
-        SECURE SYSTEM OVERRIDE // Built by <a href="https://sijuly.nyc.mn" target="_blank">小龙女她爸</a>
+      <div class="content has-text-centered">
+        Built with ❤️ by <a href="https://sijuly.nyc.mn" target="_blank">小龙女她爸</a>
       </div>
     </div>
   </footer>
