@@ -27,33 +27,6 @@ else
     DOCKER_COMPOSE_CMD="docker-compose"
 fi
 
-# 尝试放行防火墙端口 (80 和 443)
-echo "正在检查并配置防火墙..."
-if command -v ufw >/dev/null 2>&1; then
-    ufw allow 80/tcp >/dev/null 2>&1
-    ufw allow 443/tcp >/dev/null 2>&1
-    echo "已尝试通过 ufw 放行 80 和 443 端口。"
-elif command -v firewall-cmd >/dev/null 2>&1; then
-    firewall-cmd --zone=public --add-port=80/tcp --permanent >/dev/null 2>&1
-    firewall-cmd --zone=public --add-port=443/tcp --permanent >/dev/null 2>&1
-    firewall-cmd --reload >/dev/null 2>&1
-    echo "已尝试通过 firewalld 放行 80 和 443 端口。"
-elif command -v iptables >/dev/null 2>&1; then
-    iptables -I INPUT -p tcp --dport 80 -j ACCEPT >/dev/null 2>&1
-    iptables -I INPUT -p tcp --dport 443 -j ACCEPT >/dev/null 2>&1
-    command -v netfilter-persistent >/dev/null 2>&1 && netfilter-persistent save >/dev/null 2>&1
-    command -v service >/dev/null 2>&1 && service iptables save >/dev/null 2>&1
-    echo "已尝试通过 iptables 放行 80 和 443 端口。"
-fi
-
-# 检查端口占用
-if ss -tuln | grep -q ":80 " || netstat -tuln | grep -q ":80 "; then
-    echo -e "\033[31m警告: 端口 80 已被占用！Caddy 可能无法启动并申请证书。请确保没有其他服务(如 Nginx, Apache)占用 80 端口。\033[0m"
-fi
-if ss -tuln | grep -q ":443 " || netstat -tuln | grep -q ":443 "; then
-    echo -e "\033[31m警告: 端口 443 已被占用！Caddy 可能无法正常工作。\033[0m"
-fi
-
 # 提示用户输入域名
 read -p "请输入您已解析到本服务器的域名 (例如: 2fa.yourdomain.com): " DOMAIN_NAME
 
@@ -79,28 +52,43 @@ fi
 # 停止可能运行的旧容器
 $DOCKER_COMPOSE_CMD down >/dev/null 2>&1
 
-# 生成 Caddyfile
-echo "正在生成 Caddyfile..."
-cat > Caddyfile <<EOF
-$DOMAIN_NAME {
-    reverse_proxy web:80
-}
-EOF
-
-# 启动服务
-echo "正在启动服务 (Docker 容器)..."
+# 启动 Web 服务 (映射到本机的 8011 端口)
+echo "正在启动 Web 服务容器 (运行在本地 8011 端口)..."
 $DOCKER_COMPOSE_CMD up -d --build
 
+# 配置宿主机的 Caddy
+echo "正在配置宿主机的 Caddy..."
+CADDYFILE_PATH="/etc/caddy/Caddyfile"
+
+if [ ! -f "$CADDYFILE_PATH" ]; then
+    echo -e "\033[31m错误: 找不到宿主机的 Caddy 配置文件 $CADDYFILE_PATH。请确保您已经安装了 Caddy。\033[0m"
+    exit 1
+fi
+
+# 检查 Caddyfile 中是否已经包含了该域名，避免重复添加
+if grep -q "$DOMAIN_NAME" "$CADDYFILE_PATH"; then
+    echo "域名 $DOMAIN_NAME 已存在于 $CADDYFILE_PATH 中，跳过添加。"
+else
+    # 备份原有的 Caddyfile
+    cp "$CADDYFILE_PATH" "${CADDYFILE_PATH}.bak.$(date +%F_%T)"
+    
+    # 将新域名的配置追加到 Caddyfile 末尾
+    cat >> "$CADDYFILE_PATH" <<EOF
+
+$DOMAIN_NAME {
+    reverse_proxy 127.0.0.1:8011
+}
+EOF
+    echo "已将 $DOMAIN_NAME 代理配置添加到 $CADDYFILE_PATH。"
+fi
+
+# 重载 Caddy 配置
+echo "正在重载 Caddy 配置..."
+systemctl reload caddy
+
 echo ""
 echo "=========================================="
-echo "部署完成！正在等待 Caddy 自动申请 SSL 证书..."
-echo "请注意："
-echo "1. 请确保您的域名 [$DOMAIN_NAME] 已经正确解析到本服务器的 IP。"
-echo "2. 如果您使用了 Cloudflare，请将小黄云(代理状态)设置为【仅 DNS】，或者将 SSL/TLS 加密模式设置为【完全(Full)】。"
-echo "3. SSL 证书申请通常需要 10~30 秒，如果访问报错 ERR_SSL_PROTOCOL_ERROR，请耐心等待并多刷新几次。"
-echo "4. 某些云厂商（如阿里云、腾讯云、AWS）需要在网页控制台的安全组中手动放行 80 和 443 端口。"
+echo "安装和配置完成！"
+echo "请访问: https://$DOMAIN_NAME"
+echo "注意: 您的请求现在通过本机的 Caddy 转发到 Docker 容器内的 8011 端口。"
 echo "=========================================="
-echo ""
-echo "以下是 Caddy 近期的运行日志（如果您看到 'certificate obtained successfully' 表示证书申请成功）："
-sleep 5
-$DOCKER_COMPOSE_CMD logs --tail=15 caddy
