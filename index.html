@@ -3,23 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>2FA Authenticator - HUD</title>
-  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <title>2FA Authenticator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <style>
     [v-cloak] { display: none; }
 
+    /* 现代 SaaS 商业级设计风格 (Stripe / Tailwind 风格) */
     :root {
-      --bg-dark: #02040a;
-      --cyan: #00e5ff;
-      --cyan-dim: rgba(0, 229, 255, 0.2);
-      --blue: #0b5bf8;
-      --text-main: #e0f2fe;
-      --text-muted: #7dd3fc;
-      --warning: #ff2a55;
+      --bg-color: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --text-main: #0F172A;
+      --text-muted: #64748B;
+      --primary: #4F46E5; /* 高级靛蓝色 */
+      --primary-hover: #4338CA;
+      --input-bg: #F1F5F9;
+      --border: #E2E8F0;
     }
 
     * {
       box-sizing: border-box;
+      /* 禁用移动端长按选中和菜单 */
       -webkit-touch-callout: none;
       -webkit-user-select: none;
       user-select: none;
@@ -28,366 +31,247 @@
     body {
       margin: 0;
       padding: 0;
-      font-family: 'Rajdhani', sans-serif;
-      background-color: var(--bg-dark);
-      /* 全局通透背景，无明显的框线 */
-      background-image: 
-        radial-gradient(circle at 50% 40%, rgba(0, 229, 255, 0.05) 0%, transparent 60%),
-        linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 229, 255, 0.03) 1px, transparent 1px);
-      background-size: 100% 100%, 60px 60px, 60px 60px;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-color);
       color: var(--text-main);
-      height: 100vh;
-      overflow: hidden;
-      position: relative;
-    }
-
-    /* 扫描线效果 */
-    body::before {
-      content: "";
-      position: fixed;
-      width: 100vw;
-      height: 100vh;
-      background: linear-gradient(
-        to bottom,
-        rgba(255,255,255,0),
-        rgba(255,255,255,0) 50%,
-        rgba(0, 0, 0, 0.2) 50%,
-        rgba(0, 0, 0, 0.2)
-      );
-      background-size: 100% 4px;
-      pointer-events: none;
-      z-index: 999;
-      opacity: 0.5;
-    }
-
-    #app {
       display: flex;
       flex-direction: column;
-      height: 100%;
-      padding: 40px 60px 20px 60px;
-      position: relative;
-      z-index: 10;
-    }
-
-    /* 顶部 HUD Header */
-    .hud-header {
-      display: flex;
-      justify-content: space-between;
       align-items: center;
-      width: 100%;
+      min-height: 100vh;
+      /* 非常柔和的背景渐变，增加一点质感 */
+      background: linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 100%);
     }
 
-    .hud-logo {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      color: var(--cyan);
-      font-size: 24px;
-      font-weight: 700;
-      letter-spacing: 4px;
-      text-shadow: 0 0 15px var(--cyan-dim);
-    }
-    
-    .hud-logo svg {
-      width: 32px;
-      height: 32px;
-      filter: drop-shadow(0 0 8px var(--cyan-dim));
-    }
-
-    .hud-status {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-family: 'Share Tech Mono', monospace;
-      color: var(--cyan);
-      font-size: 14px;
-      letter-spacing: 2px;
-      padding: 8px 16px;
-      background: rgba(0, 229, 255, 0.05);
-      border: 1px solid rgba(0, 229, 255, 0.2);
-      border-radius: 2px;
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      background: var(--cyan);
-      border-radius: 50%;
-      box-shadow: 0 0 10px var(--cyan);
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
-    }
-
-    /* 中间主体区域 - 巨型数字 */
-    .hud-main {
+    .main-wrapper {
       flex: 1;
       display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      padding: 20px;
+    }
+
+    /* 核心白色卡片，大圆角，柔和阴影 */
+    .auth-card {
+      width: 100%;
+      max-width: 440px;
+      background: var(--card-bg);
+      border-radius: 24px;
+      padding: 40px 32px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    /* 顶部的锁图标 */
+    .header-icon {
+      width: 48px;
+      height: 48px;
+      background: rgba(79, 70, 229, 0.1);
+      border-radius: 16px;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 100%;
+      margin-bottom: 16px;
+      color: var(--primary);
     }
 
-    .token-wrapper {
-      width: 100%;
-      max-width: 1200px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    #token {
-      font-family: 'Share Tech Mono', monospace;
-      font-size: min(15vw, 160px);
+    .header-title {
+      font-size: 24px;
       font-weight: 700;
-      color: #ffffff;
-      letter-spacing: 0.15em;
+      color: var(--text-main);
       margin: 0;
-      margin-right: -0.15em; /* 补偿 letter-spacing 使得居中 */
-      text-shadow: 0 0 20px rgba(0, 229, 255, 0.6), 0 0 50px rgba(11, 91, 248, 0.5);
-      line-height: 1;
-      pointer-events: none;
+      letter-spacing: -0.5px;
     }
 
-    /* 倒计时进度条 */
-    .timer-container {
-      width: 100%;
-      max-width: 800px;
-      margin: 40px 0 60px 0;
+    .input-group {
+      margin-bottom: 20px;
     }
 
-    .timer-labels {
-      display: flex;
-      justify-content: space-between;
-      color: var(--cyan);
-      font-size: 16px;
-      font-weight: 600;
-      letter-spacing: 3px;
-      margin-bottom: 15px;
-      text-transform: uppercase;
-    }
-
-    .timer-track {
-      width: 100%;
-      height: 2px;
-      background: rgba(0, 229, 255, 0.15);
-      position: relative;
-    }
-
-    .timer-fill {
-      height: 100%;
-      background: var(--cyan);
-      box-shadow: 0 0 15px var(--cyan);
-      transition: width 1s linear;
-    }
-
-    .timer-fill.warning {
-      background: var(--warning);
-      box-shadow: 0 0 15px var(--warning);
-    }
-    .text-warning {
-      color: var(--warning) !important;
-      text-shadow: 0 0 10px var(--warning);
-    }
-
-    /* 复制按钮 */
-    .action-btn {
-      background: transparent;
-      border: 1px solid var(--cyan);
-      color: var(--cyan);
-      padding: 16px 48px;
-      font-size: 20px;
-      font-weight: 600;
-      font-family: 'Rajdhani', sans-serif;
-      letter-spacing: 4px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .action-btn::before {
-      content: '';
-      position: absolute;
-      top: 0; left: -100%;
-      width: 100%; height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(0, 229, 255, 0.2), transparent);
-      transition: left 0.5s ease;
-    }
-
-    .action-btn:hover::before {
-      left: 100%;
-    }
-
-    .action-btn:hover {
-      background: rgba(0, 229, 255, 0.1);
-      box-shadow: 0 0 30px rgba(0, 229, 255, 0.3);
-      color: #fff;
-      border-color: #fff;
-    }
-
-    /* 底部配置栏（融合在背景中，无边框） */
-    .hud-footer {
-      width: 100%;
-    }
-
-    .config-row {
-      display: flex;
-      gap: 60px;
-      width: 100%;
-      background: linear-gradient(90deg, transparent, rgba(0, 229, 255, 0.03) 50%, transparent);
-      border-top: 1px solid rgba(0, 229, 255, 0.15);
-      border-bottom: 1px solid rgba(0, 229, 255, 0.15);
-      padding: 24px 40px;
-      margin-bottom: 24px;
-    }
-
-    .config-item {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .config-item.stretch {
-      flex: 1;
-    }
-
-    .config-label {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      color: var(--text-muted);
-      font-size: 15px;
-      font-weight: 600;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-    }
-    
-    .config-label svg {
-      width: 18px;
-      height: 18px;
-      color: var(--cyan);
-      opacity: 0.8;
-    }
-
-    .config-label span {
+    .input-label {
+      display: block;
       font-size: 13px;
-      font-family: system-ui, -apple-system, sans-serif;
-      opacity: 0.6;
-      letter-spacing: 1px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 8px;
     }
 
-    .config-input {
-      background: transparent;
-      border: none;
-      border-bottom: 1px dashed rgba(0, 229, 255, 0.3);
-      color: var(--cyan);
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 22px;
-      padding: 8px 0;
-      outline: none;
-      transition: all 0.3s ease;
+    /* 清爽的输入框 */
+    .input-field {
       width: 100%;
+      background: var(--input-bg);
+      border: 2px solid transparent;
+      color: var(--text-main);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 15px;
+      outline: none;
+      transition: all 0.2s ease;
+      /* 恢复输入框的文本选中和修改能力 */
       -webkit-user-select: text;
       user-select: text;
     }
 
-    .config-input:focus {
-      border-bottom: 1px solid var(--cyan);
-      text-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
-      background: rgba(0, 229, 255, 0.02);
+    .input-field:focus {
+      background: var(--card-bg);
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
     }
 
-    /* Toast 提示 */
+    .input-field.mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .row {
+      display: flex;
+      gap: 16px;
+    }
+
+    .row .input-group {
+      flex: 1;
+    }
+
+    /* 验证码展示区 */
+    .token-display {
+      background: #F8FAFC;
+      border: 1px dashed #CBD5E1;
+      border-radius: 16px;
+      padding: 32px 20px;
+      text-align: center;
+      margin: 32px 0;
+    }
+
+    #token {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 48px;
+      font-weight: 700;
+      letter-spacing: 12px;
+      margin: 0;
+      margin-right: -12px; /* 补偿间距使之居中 */
+      color: var(--primary);
+      /* 禁止选中验证码 */
+      pointer-events: none;
+    }
+
+    /* 倒计时 */
+    .timer-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 8px;
+      background: var(--input-bg);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 4px;
+      transition: width 0.2s linear;
+    }
+
+    .progress-bar-fill.warning {
+      background: #EF4444; /* 红色警告 */
+    }
+    .text-warning {
+      color: #EF4444 !important;
+    }
+
+    /* 复制按钮 */
+    .copy-btn {
+      width: 100%;
+      background: var(--primary);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      -webkit-tap-highlight-color: transparent;
+      margin-top: 32px;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+    }
+
+    .copy-btn:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(79, 70, 229, 0.3);
+    }
+
+    .copy-btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.2);
+    }
+
+    /* 成功提示 Toast */
     .toast-container {
       position: fixed;
-      top: 30px;
+      top: 40px;
       left: 50%;
       transform: translateX(-50%) translateY(-20px);
-      background: rgba(2, 4, 10, 0.9);
-      backdrop-filter: blur(10px);
-      color: var(--cyan);
-      border: 1px solid var(--cyan);
-      padding: 16px 32px;
-      font-size: 16px;
-      font-weight: 700;
+      background: #1E293B;
+      color: #FFFFFF;
+      padding: 12px 24px;
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 500;
       opacity: 0;
       pointer-events: none;
       transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       z-index: 1000;
       display: flex;
       align-items: center;
-      box-shadow: 0 0 20px rgba(0, 229, 255, 0.3);
-      letter-spacing: 2px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
     }
 
     .toast-container.show {
       opacity: 1;
       transform: translateX(-50%) translateY(0);
     }
-    
-    .toast-icon {
-      margin-right: 12px;
+
+    .toast-icon-check {
+      color: #10B981; /* 绿色对勾 */
+      margin-right: 8px;
+      font-size: 18px;
     }
 
-    .copyright {
+    /* 底部作者信息 (恢复) */
+    .footer {
+      width: 100%;
       text-align: center;
+      padding: 24px;
+      font-size: 14px;
       color: var(--text-muted);
-      font-size: 13px;
-      letter-spacing: 2px;
-      opacity: 0.8;
-    }
-    .copyright a {
-      color: var(--cyan);
-      text-decoration: none;
-      font-weight: 700;
-    }
-    .copyright a:hover {
-      text-decoration: underline;
-      text-shadow: 0 0 8px var(--cyan-dim);
     }
 
-    /* 移动端适配 */
-    @media (max-width: 900px) {
-      .config-row {
-        gap: 30px;
-        padding: 20px;
-      }
+    .footer a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
     }
-    @media (max-width: 600px) {
-      body {
-        overflow-y: auto;
-      }
-      #app {
-        height: auto;
-        min-height: 100vh;
-        padding: 30px 20px 20px 20px;
-      }
-      .hud-header {
-        flex-direction: column;
-        gap: 20px;
-        align-items: flex-start;
-      }
-      .config-row {
-        flex-direction: column;
-        background: transparent;
-        border: none;
-        padding: 0;
-        gap: 24px;
-      }
-      .hud-main {
-        padding: 60px 0;
-      }
-      .timer-container {
-        width: 100%;
-      }
+
+    .footer a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
@@ -397,103 +281,71 @@
   <script src="js/otpauth-3.1.3.min.js"></script>
   <script src="js/clipboard-2.0.6.min.js"></script>
 
-  <div id="app" v-cloak>
+  <div id="app" class="main-wrapper" v-cloak>
     
-    <!-- 提示框 -->
+    <!-- 复制成功的提示 -->
     <div class="toast-container" :class="{ show: showToast }">
-      <svg class="toast-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-        <polyline points="22 4 12 14.01 9 11.01"></polyline>
-      </svg>
-      CODE_COPIED
+      <span class="toast-icon-check">✓</span> 验证码已复制
     </div>
 
-    <!-- 顶部 -->
-    <header class="hud-header">
-      <div class="hud-logo">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-          <polyline points="2 17 12 22 22 17"></polyline>
-          <polyline points="2 12 12 17 22 12"></polyline>
-        </svg>
-        <span>SYS_AUTH</span>
-      </div>
-      <div class="hud-status">
-        <div class="status-dot"></div>
-        <span>SYSTEM_ONLINE</span>
-      </div>
-    </header>
-
-    <!-- 中间动态口令显示 -->
-    <main class="hud-main">
-      <div class="token-wrapper">
-        <h1 id="token">{{ token }}</h1>
-        
-        <div class="timer-container">
-          <div class="timer-labels">
-            <span>ACTIVE_TOKEN</span>
-            <span :class="{ 'text-warning': updatingIn <= 5 }">00:{{ updatingIn < 10 ? '0' + updatingIn : updatingIn }}</span>
-          </div>
-          <div class="timer-track">
-            <div class="timer-fill" :class="{ warning: updatingIn <= 5 }" :style="{ width: (updatingIn / period * 100) + '%' }"></div>
-          </div>
-        </div>
-
-        <button id="clipboard-button" class="action-btn" :data-clipboard-text="token">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+    <div class="auth-card">
+      <div class="header">
+        <div class="header-icon">
+          <!-- 锁的 SVG 图标 -->
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
-          COPY_CODE
-        </button>
-      </div>
-    </main>
-
-    <!-- 底部配置项 -->
-    <footer class="hud-footer">
-      <div class="config-row">
-        
-        <div class="config-item stretch">
-          <div class="config-label">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
-            </svg>
-            SECRET_KEY <span>秘钥</span>
-          </div>
-          <input class="config-input" type="text" v-model="secret_key" placeholder="INPUT_SECRET_KEY">
         </div>
-
-        <div class="config-item">
-          <div class="config-label">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-              <path d="M8 12h8"></path>
-              <path d="M12 8v8"></path>
-            </svg>
-            DIGITS <span>位数</span>
-          </div>
-          <input class="config-input" type="number" v-model="digits">
-        </div>
-
-        <div class="config-item">
-          <div class="config-label">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-            PERIOD <span>周期</span>
-          </div>
-          <input class="config-input" type="number" v-model="period">
-        </div>
-
+        <h1 class="header-title">Authenticator</h1>
       </div>
-      
-      <div class="copyright">
-        SYSTEM_BUILT_BY <a href="https://sijuly.nyc.mn" target="_blank">小龙女她爸</a>
-      </div>
-    </footer>
 
+      <div class="input-group">
+        <label class="input-label">Secret Key // 秘钥</label>
+        <input class="input-field mono" type="text" v-model="secret_key" placeholder="Paste your 2FA secret">
+      </div>
+
+      <div class="row">
+        <div class="input-group">
+          <label class="input-label">Digits // 位数</label>
+          <input class="input-field" type="number" v-model="digits">
+        </div>
+        <div class="input-group">
+          <label class="input-label">Period // 周期(s)</label>
+          <input class="input-field" type="number" v-model="period">
+        </div>
+      </div>
+
+      <div class="token-display">
+        <p id="token">{{ token }}</p>
+      </div>
+
+      <div>
+        <div class="timer-row">
+          <span>刷新倒计时</span>
+          <span :class="{ 'text-warning': updatingIn <= 5 }">{{ updatingIn }}s</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" :class="{ warning: updatingIn <= 5 }" :style="{ width: (updatingIn / period * 100) + '%' }"></div>
+        </div>
+      </div>
+
+      <button id="clipboard-button" class="copy-btn" :data-clipboard-text="token">
+        <!-- 复制 SVG 图标 -->
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        复制验证码
+      </button>
+
+    </div>
   </div>
+
+  <!-- 恢复最初始的作者及超链接信息 -->
+  <footer class="footer">
+    Built with ❤️ by <a href="https://sijuly.nyc.mn" target="_blank">小龙女她爸</a>
+  </footer>
 
   <script src="js/app.js?v=4.0"></script>
 </body>
